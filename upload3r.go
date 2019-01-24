@@ -14,7 +14,6 @@ import (
 )
 
 type s3payload struct {
-	concurrency  int
 	endpoint     string
 	region       string
 	keyId        string
@@ -46,13 +45,12 @@ func main() {
 		source:       *source,
 		bucket:       *bucket,
 		bucketPrefix: *bucketPrefix,
-		concurrency:  *concurrency,
 	}
 
 	log.Print("AWS S3 Uploader started!")
 
 	if isDirectory(*source) {
-		uploadDirToS3(payload)
+		uploadDirToS3(payload, *concurrency)
 	} else {
 		uploadFileToS3(payload)
 	}
@@ -60,7 +58,7 @@ func main() {
 	log.Print("AWS S3 Uploader finished successfully!")
 }
 
-func uploadDirToS3(payload s3payload) {
+func uploadDirToS3(payload s3payload, concurrency int) {
 	dirPath, _ := filepath.Abs(payload.source)
 	var files []string
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
@@ -74,7 +72,7 @@ func uploadDirToS3(payload s3payload) {
 	checkErr(err)
 
 	var wg sync.WaitGroup
-	sem := make(chan bool, payload.concurrency)
+	sem := make(chan bool, concurrency)
 	for _, file := range files {
 		dir := filepath.Dir(file)
 		prefix := payload.bucketPrefix + strings.Replace(dir, dirPath, "", -1)
